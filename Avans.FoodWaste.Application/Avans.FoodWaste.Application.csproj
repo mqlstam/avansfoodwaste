@@ -8,6 +8,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Avans.FoodWaste.Core\Avans.FoodWaste.Core.csproj" />
+      <ProjectReference Include="..\Avans.FoodWaste.Infrastructure\Avans.FoodWaste.Infrastructure.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,9 +1,32 @@
+using Avans.FoodWaste.API;
+using Avans.FoodWaste.API.Middleware;
+using Avans.FoodWaste.Application.Interfaces;
+using Avans.FoodWaste.Infrastructure.Data; 
+using Microsoft.EntityFrameworkCore; 
+using Avans.FoodWaste.Application.Services;
+using Avans.FoodWaste.Application.Interfaces; 
+using Avans.FoodWaste.Application.Services;  
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddDbContext<FoodWasteDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("FoodWasteDatabase")));
+
+// Register the DataSeeder as a hosted service
+builder.Services.AddHostedService<DataSeeder>();
+
+// PackageService registration
+builder.Services.AddScoped<IPackageService, PackageService>();
+
+builder.Services.AddScoped<IStudentService, StudentService>(); 
+
+builder.Services.AddScoped<IReservationService, ReservationService>();
+
 
 var app = builder.Build();
 
@@ -16,29 +39,16 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
+app.UseRouting(); // Middleware must be registered after UseRouting
 
-app.MapGet("/weatherforecast", () =>
-    {
-        var forecast = Enumerable.Range(1, 5).Select(index =>
-                new WeatherForecast
-                (
-                    DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                    Random.Shared.Next(-20, 55),
-                    summaries[Random.Shared.Next(summaries.Length)]
-                ))
-            .ToArray();
-        return forecast;
-    })
-    .WithName("GetWeatherForecast")
-    .WithOpenApi();
+// Use the ExceptionHandlerMiddleware
+app.UseMiddleware<ExceptionHandlerMiddleware>(); // Add this line
+
+app.UseAuthorization();
+
+app.UseEndpoints(endpoints => 
+{
+    endpoints.MapControllers();
+});
 
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
