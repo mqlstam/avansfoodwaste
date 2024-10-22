@@ -167,3 +167,4 @@ Thumbs.db
 /js/coverage/
 /node_modules/
 Avans.FoodWaste.MVC/wwwroot/lib/
+Avans.FoodWaste.Infrastructure/Data/Migrations

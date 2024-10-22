@@ -17,6 +17,9 @@ namespace Avans.FoodWaste.Application.Interfaces
 
         Task<Result<IEnumerable<PackageDto>>> GetAvailablePackagesAsync(string? city = null, MealType? mealType = null,
             string? orderBy = null); // Updated signature
+        
+        Task<Result<StudentPackageOverviewDto>> GetPackageOverviewAsync(int studentId);
+
 
     }
 }

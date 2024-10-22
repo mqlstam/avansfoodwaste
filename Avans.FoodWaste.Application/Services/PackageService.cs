@@ -430,5 +430,74 @@ public async Task<Result<IEnumerable<PackageDto>>> GetAvailablePackagesAsync(str
         };
     }
 }
+
+private ReservationDetailsDto MapToReservationDetailsDto(Package package)
+{
+    return new ReservationDetailsDto
+    {
+        PackageId = package.Id,
+        PackageName = package.Name,
+        ExampleProductIds = package.ExampleProductIds,
+        PickupDateTime = package.PickupDateTime,
+        LatestPickupTime = package.LatestPickupTime,
+        IsAdultPackage = package.IsAdultPackage,
+        Price = package.Price,
+        MealType = package.MealType.ToString(),
+        ReservationStatus = package.ReservationStatus.ToString(),
+        NoShowStatus = package.NoShowStatus.ToString(),
+        Cafeteria = new CafeteriaDto
+        {
+            Id = package.Cafeteria.Id,
+            City = package.Cafeteria.City,
+            LocationIdentifier = package.Cafeteria.LocationIdentifier,
+            HotMealsAvailable = package.Cafeteria.HotMealsAvailable,
+            OperatingHours = package.Cafeteria.OperatingHours
+        }
+    };
+}
+
+public async Task<Result<StudentPackageOverviewDto>> GetPackageOverviewAsync(int studentId)
+{
+    try
+    {
+        // 1. Get available packages
+        var availablePackages = await _context.Packages
+            .Include(p => p.Cafeteria)
+            .Where(p => p.ReservationStatus == ReservationStatus.Available)
+            .ToListAsync();
+
+        // 2. Get reserved packages for the student
+        var reservedPackages = await _context.Reservations
+            .Include(r => r.Package)
+            .ThenInclude(p => p.Cafeteria)
+            .Where(r => r.StudentId == studentId)
+            .Select(r => r.Package)
+            .ToListAsync();
+
+        // 3. Map to DTOs
+        var availablePackageDtos = availablePackages.Select(MapToDto);
+        var reservedPackageDtos = reservedPackages.Select(MapToReservationDetailsDto);
+
+        // 4. Create and return StudentPackageOverviewDto
+        return new Result<StudentPackageOverviewDto>
+        {
+            IsSuccess = true,
+            Value = new StudentPackageOverviewDto
+            {
+                AvailablePackages = availablePackageDtos,
+                ReservedPackages = reservedPackageDtos
+            }
+        };
+    }
+    catch (Exception ex)
+    {
+        return new Result<StudentPackageOverviewDto>
+        {
+            IsSuccess = false,
+            Error = new ErrorResponseDto { Message = "Error retrieving package overview.", Details = ex.Message }
+        };
+    }
+}
+
     }
 }
