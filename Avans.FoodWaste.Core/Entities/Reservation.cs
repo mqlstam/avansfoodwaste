@@ -10,6 +10,8 @@ namespace Avans.FoodWaste.Core.Entities
         public int PackageId { get; set; }
         public Package Package { get; set; }  // Navigation property
         public DateTime ReservationDate { get; set; } = DateTime.UtcNow; //Automatically sets time of reservation.
+        
+        
 
     }
 }

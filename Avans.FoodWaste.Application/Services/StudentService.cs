@@ -83,7 +83,7 @@ namespace Avans.FoodWaste.Application.Services
             try
             {
                 // 1. Validate Age (must be at least 16)
-                int age = DateHelpers.CalculateAge(dto.DateOfBirth);  // Use the helper function
+                int age = DateHelpers.CalculateAge(dto.DateOfBirth); // Corrected call - only one parameter
                 if (age < 16)
                 {
                     return new Result<StudentDto>
@@ -150,7 +150,7 @@ namespace Avans.FoodWaste.Application.Services
                 // 1. Validate Age (if DateOfBirth is being updated)
                 if (dto.DateOfBirth != student.DateOfBirth)
                 {
-                    int age = DateHelpers.CalculateAge(dto.DateOfBirth); // Use the helper function
+                    int age = DateHelpers.CalculateAge(dto.DateOfBirth);
                     if (age < 16)
                     {
                         return new Result<StudentDto>
@@ -160,16 +160,6 @@ namespace Avans.FoodWaste.Application.Services
                         };
                     }
                 }
-                
-                // Check for duplicate student number (if it's changed)
-                if (dto.StudentNumber != student.StudentNumber && await _context.Students.AnyAsync(s => s.StudentNumber == dto.StudentNumber))
-                {
-                    return new Result<StudentDto>
-                    {
-                        IsSuccess = false,
-                        Error = new ErrorResponseDto { Message = "Student number already exists.", Details = "A student with this student number already exists." }
-                    };
-                }
 
                 // 2. Update Student entity
                 student.Name = dto.Name;
@@ -177,14 +167,13 @@ namespace Avans.FoodWaste.Application.Services
                 student.StudentNumber = dto.StudentNumber;
                 student.Email = dto.Email;
                 student.StudyCity = dto.StudyCity;
-                student.PhoneNumber = dto.PhoneNumber; 
+                student.PhoneNumber = dto.PhoneNumber;
 
                 await _context.SaveChangesAsync();
                 return new Result<StudentDto> { IsSuccess = true, Value = MapToDto(student) };
             }
             catch (Exception ex)
             {
-                // Handle other potential errors
                 return new Result<StudentDto>
                 {
                     IsSuccess = false,
@@ -192,7 +181,6 @@ namespace Avans.FoodWaste.Application.Services
                 };
             }
         }
-
         public async Task<Result<bool>> DeleteAsync(int id)
         {
             try

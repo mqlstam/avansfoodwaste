@@ -37,6 +37,7 @@ namespace Avans.FoodWaste.Application.Services
         {
             try
             {
+                // 1. Check if student and package exist
                 var student = await _context.Students.FindAsync(dto.StudentId);
                 if (student == null)
                 {
@@ -47,19 +48,18 @@ namespace Avans.FoodWaste.Application.Services
                     };
                 }
 
-                var packageResult = await _packageService.GetByIdAsync(dto.PackageId);
-                if (!packageResult.IsSuccess)
+                var package = await _context.Packages.FindAsync(dto.PackageId);
+                if (package == null)
                 {
                     return new Result<ReservationDto>
                     {
                         IsSuccess = false,
-                        Error = packageResult.Error
+                        Error = new ErrorResponseDto { Message = "Package not found.", Details = $"Package with ID {dto.PackageId} not found." }
                     };
                 }
 
-                var package = packageResult.Value;
-
-                if (package.ReservationStatus != "Available")
+                // 2. Check if package is already reserved
+                if (package.ReservationStatus != ReservationStatus.Available)
                 {
                     return new Result<ReservationDto>
                     {
@@ -68,9 +68,10 @@ namespace Avans.FoodWaste.Application.Services
                     };
                 }
 
+                // 3. Check if student already has a reservation for this day
                 if (await _context.Reservations.AnyAsync(r =>
                         r.StudentId == dto.StudentId &&
-                        r.Package.PickupDateTime.Date == package.PickupDateTime.Date)) 
+                        r.Package.PickupDateTime.Date == package.PickupDateTime.Date))
                 {
                     return new Result<ReservationDto>
                     {
@@ -79,7 +80,8 @@ namespace Avans.FoodWaste.Application.Services
                     };
                 }
 
-                if (package.IsAdultPackage && DateHelpers.CalculateAge(student.DateOfBirth) < 18)
+                // 4. Check for age restriction
+                if (package.IsAdultPackage && DateHelpers.CalculateAge(student.DateOfBirth) < 18) // Corrected call
                 {
                     return new Result<ReservationDto>
                     {
@@ -88,6 +90,8 @@ namespace Avans.FoodWaste.Application.Services
                     };
                 }
 
+
+                // 5. Create and save reservation
                 var reservation = new Reservation
                 {
                     StudentId = dto.StudentId,
@@ -95,16 +99,10 @@ namespace Avans.FoodWaste.Application.Services
                 };
 
                 _context.Reservations.Add(reservation);
-
-                var packageEntity = await _context.Packages.FindAsync(dto.PackageId);
-
-                if (packageEntity != null)
-                {
-                    packageEntity.ReservationStatus = ReservationStatus.Reserved;
-                    packageEntity.ReservedById = student.Id;
-                }
-
+                package.ReservationStatus = ReservationStatus.Reserved;
+                package.ReservedById = student.Id;
                 await _context.SaveChangesAsync();
+
                 return new Result<ReservationDto> { IsSuccess = true, Value = MapToDto(reservation) };
             }
             catch (Exception ex)
@@ -124,6 +122,7 @@ namespace Avans.FoodWaste.Application.Services
                 var reservation = await _context.Reservations
                     .Include(r => r.Student)
                     .Include(r => r.Package)
+                    .ThenInclude(p => p.Cafeteria)
                     .FirstOrDefaultAsync(r => r.Id == id);
 
                 if (reservation == null)
@@ -151,7 +150,12 @@ namespace Avans.FoodWaste.Application.Services
         {
             try
             {
-                var reservations = await _context.Reservations.ToListAsync();
+                var reservations = await _context.Reservations
+                    .Include(r => r.Student)
+                    .Include(r => r.Package)
+                    .ThenInclude(p => p.Cafeteria)
+                    .ToListAsync();
+
                 return new Result<IEnumerable<ReservationDto>> { IsSuccess = true, Value = reservations.Select(MapToDto) };
             }
             catch (Exception ex)
@@ -168,13 +172,26 @@ namespace Avans.FoodWaste.Application.Services
         {
             try
             {
+                // 1. Check if student exists
+                var student = await _context.Students.FindAsync(studentId);
+                if (student == null)
+                {
+                    return new Result<IEnumerable<ReservationDto>>
+                    {
+                        IsSuccess = false,
+                        Error = new ErrorResponseDto { Message = "Student not found.", Details = $"Student with ID {studentId} not found." }
+                    };
+                }
+
+                // 2. If student exists, retrieve reservations
                 var reservations = await _context.Reservations
                     .Include(r => r.Student)
                     .Include(r => r.Package)
+                    .ThenInclude(p => p.Cafeteria)
                     .Where(r => r.StudentId == studentId)
                     .ToListAsync();
-                return new Result<IEnumerable<ReservationDto>> { IsSuccess = true, Value = reservations.Select(MapToDto) };
 
+                return new Result<IEnumerable<ReservationDto>> { IsSuccess = true, Value = reservations.Select(MapToDto) };
             }
             catch (Exception ex)
             {
@@ -186,6 +203,75 @@ namespace Avans.FoodWaste.Application.Services
             }
         }
 
+        // In Application/Services/ReservationService.cs
+        public async Task<Result<IEnumerable<ReservationDetailsDto>>> GetReservationsWithDetailsByStudentIdAsync(int studentId)
+        {
+            try
+            {
+                // 1. Check if student exists
+                var student = await _context.Students.FindAsync(studentId);
+                if (student == null)
+                {
+                    return new Result<IEnumerable<ReservationDetailsDto>>
+                    {
+                        IsSuccess = false,
+                        Error = new ErrorResponseDto { Message = "Student not found.", Details = $"Student with ID {studentId} not found." }
+                    };
+                }
+
+                // 2. If student exists, retrieve reservations with details
+                var reservations = await _context.Reservations
+                    .Include(r => r.Student)
+                    .Include(r => r.Package)
+                    .ThenInclude(p => p.Cafeteria)
+                    .Where(r => r.StudentId == studentId)
+                    .ToListAsync();
+
+                return new Result<IEnumerable<ReservationDetailsDto>>
+                {
+                    IsSuccess = true,
+                    Value = reservations.Select(MapToReservationDetailsDto).ToList() 
+                };
+            }
+            catch (Exception ex)
+            {
+                return new Result<IEnumerable<ReservationDetailsDto>>
+                {
+                    IsSuccess = false,
+                    Error = new ErrorResponseDto { Message = "Failed to retrieve reservation details.", Details = ex.Message }
+                };
+            }
+        }
+
+        private ReservationDetailsDto MapToReservationDetailsDto(Reservation reservation)
+        {
+            return new ReservationDetailsDto
+            {
+                ReservationId = reservation.Id,
+                StudentId = reservation.StudentId,
+                ReservationDate = reservation.ReservationDate,
+
+                PackageId = reservation.Package.Id,
+                PackageName = reservation.Package.Name,
+                ExampleProductIds = reservation.Package.ExampleProductIds,
+                PickupDateTime = reservation.Package.PickupDateTime,
+                LatestPickupTime = reservation.Package.LatestPickupTime,
+                IsAdultPackage = reservation.Package.IsAdultPackage,
+                Price = reservation.Package.Price,
+                MealType = reservation.Package.MealType.ToString(),
+                ReservationStatus = reservation.Package.ReservationStatus.ToString(),
+                NoShowStatus = reservation.Package.NoShowStatus.ToString(),
+
+                Cafeteria = new CafeteriaDto
+                {
+                    Id = reservation.Package.Cafeteria.Id,
+                    City = reservation.Package.Cafeteria.City,
+                    LocationIdentifier = reservation.Package.Cafeteria.LocationIdentifier,
+                    HotMealsAvailable = reservation.Package.Cafeteria.HotMealsAvailable,
+                    OperatingHours = reservation.Package.Cafeteria.OperatingHours
+                }
+            };
+        }
 
         public async Task<Result<bool>> DeleteAsync(int id)
         {
@@ -207,6 +293,7 @@ namespace Avans.FoodWaste.Application.Services
                     package.ReservationStatus = ReservationStatus.Available;
                     package.ReservedById = null;
                 }
+
 
                 _context.Reservations.Remove(reservation);
                 await _context.SaveChangesAsync();

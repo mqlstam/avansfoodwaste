@@ -52,6 +52,14 @@ namespace Avans.FoodWaste.API.Controllers
                 : BadRequest(result.Error);
         }
 
+        [HttpGet("student/{studentId}/details")] // New route
+        public async Task<ActionResult<IEnumerable<ReservationDetailsDto>>> GetReservationsWithDetailsByStudentId(int studentId)
+        {
+            var result = await _reservationService.GetReservationsWithDetailsByStudentIdAsync(studentId);
+            return result.IsSuccess
+                ? Ok(result.Value)
+                : BadRequest(result.Error);
+        }
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

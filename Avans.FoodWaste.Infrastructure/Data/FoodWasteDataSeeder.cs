@@ -16,9 +16,16 @@ namespace Avans.FoodWaste.Infrastructure.Data
             }
 
             // Sample Cafeterias
-            var cafeteria1 = new Cafeteria { City = "Breda", LocationIdentifier = "1a", HotMealsAvailable = true, OperatingHours = "8:00-17:00" };
-            var cafeteria2 = new Cafeteria { City = "Tilburg", LocationIdentifier = "2b", HotMealsAvailable = false, OperatingHours = "9:00-16:00" };
-            var cafeteria3 = new Cafeteria { City = "Den Bosch", LocationIdentifier = "3c", HotMealsAvailable = true, OperatingHours = "8:30-17:30" };
+            var cafeteria1 = new Cafeteria
+                { City = "Breda", LocationIdentifier = "1a", HotMealsAvailable = true, OperatingHours = "8:00-17:00" };
+            var cafeteria2 = new Cafeteria
+            {
+                City = "Tilburg", LocationIdentifier = "2b", HotMealsAvailable = false, OperatingHours = "9:00-16:00"
+            };
+            var cafeteria3 = new Cafeteria
+            {
+                City = "Den Bosch", LocationIdentifier = "3c", HotMealsAvailable = true, OperatingHours = "8:30-17:30"
+            };
 
             context.Cafeterias.AddRange(cafeteria1, cafeteria2, cafeteria3);
             context.SaveChanges();
@@ -42,10 +49,33 @@ namespace Avans.FoodWaste.Infrastructure.Data
             context.SaveChanges();
 
             // Sample Students
-            var student1 = new Student { Name = "Alice", DateOfBirth = new DateTime(2005, 5, 10), StudentNumber = "1234567", Email = "alice@example.com", StudyCity = "Breda", PhoneNumber = "1234567890" };
-            var student2 = new Student { Name = "Bob", DateOfBirth = new DateTime(2004, 11, 20), StudentNumber = "7654321", Email = "bob@example.com", StudyCity = "Tilburg", PhoneNumber = "9876543210" };
-            var student3 = new Student { Name = "Charlie", DateOfBirth = new DateTime(2006, 2, 15), StudentNumber = "9876543", Email = "charlie@example.com", StudyCity = "Den Bosch", PhoneNumber = "5551234567" };
-
+            var student1 = new Student
+            {
+                Name = "Alice",
+                DateOfBirth = new DateTime(2005, 5, 10), 
+                StudentNumber = "1234567",
+                Email = "alice@example.com",
+                StudyCity = "Breda",
+                PhoneNumber = "1234567890"
+            };
+            var student2 = new Student
+            {
+                Name = "Bob",
+                DateOfBirth = new DateTime(2004, 11, 20),
+                StudentNumber = "7654321",
+                Email = "bob@example.com",
+                StudyCity = "Tilburg",
+                PhoneNumber = "9876543210"
+            };
+            var student3 = new Student
+            {
+                Name = "Charlie",
+                DateOfBirth = new DateTime(2007, 2, 15),
+                StudentNumber = "9876543",
+                Email = "charlie@example.com",
+                StudyCity = "Den Bosch",
+                PhoneNumber = "5551234567"
+            };
 
             context.Students.AddRange(student1, student2, student3);
             context.SaveChanges();
@@ -55,14 +85,15 @@ namespace Avans.FoodWaste.Infrastructure.Data
             {
                 Name = "Leftover Bread",
                 ExampleProductIds = new List<int> { product1.Id, product2.Id },
-                PickupDateTime = DateTime.Now.AddDays(1), 
+                PickupDateTime = DateTime.Now.AddDays(1),
                 LatestPickupTime = DateTime.Now.AddDays(1).AddHours(1),
                 IsAdultPackage = false,
                 Price = 2.50m,
                 MealType = MealType.Bread,
-                ReservationStatus = ReservationStatus.Available,
+                ReservationStatus = ReservationStatus.Reserved, // Package 1 is reserved
                 NoShowStatus = NoShowStatus.None,
-                Cafeteria = cafeteria1
+                Cafeteria = cafeteria1,
+                ReservedById = student1.Id // Student 1 has reserved package 1
             };
 
             var package2 = new Package
@@ -85,35 +116,29 @@ namespace Avans.FoodWaste.Infrastructure.Data
                 ExampleProductIds = new List<int> { product5.Id },
                 PickupDateTime = DateTime.Now.AddDays(1),
                 LatestPickupTime = DateTime.Now.AddDays(1).AddHours(1),
-                IsAdultPackage = true, // Example of an adult package
+                IsAdultPackage = true,
                 Price = 3.00m,
                 MealType = MealType.Drinks,
                 ReservationStatus = ReservationStatus.Available,
                 NoShowStatus = NoShowStatus.None,
                 Cafeteria = cafeteria2
             };
-            
+
             context.Packages.AddRange(package1, package2, package3);
             context.SaveChanges();
 
-
-            // Sample Reservations
+            // Sample Reservations (matching the pre-reserved package)
             var reservation1 = new Reservation
             {
-                StudentId = 1,
-                PackageId = 1, 
-                ReservationDate = DateTime.UtcNow.AddDays(-2) // Different day
-                
-            };
-
-            var reservation2 = new Reservation
-            {
-                StudentId = 2, // Different student
-                PackageId = 2,
+                StudentId = student1.Id,  // Student 1 reserved Package 1
+                PackageId = package1.Id,  // Package 1
                 ReservationDate = DateTime.UtcNow.AddDays(-1)
             };
 
-            context.Reservations.AddRange(reservation1, reservation2);
+            // Now package 1 is reserved by student 1, 
+            // and student 1 has a reservation for today.
+
+            context.Reservations.AddRange(reservation1);
             context.SaveChanges();
         }
     }

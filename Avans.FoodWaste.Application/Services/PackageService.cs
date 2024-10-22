@@ -364,5 +364,71 @@ namespace Avans.FoodWaste.Application.Services
                 };
             }
         }
+        
+        // In Application/Services/PackageService.cs
+public async Task<Result<IEnumerable<PackageDto>>> GetAvailablePackagesAsync(string? city = null, MealType? mealType = null, string? orderBy = null)
+{
+    try
+    {
+        var query = _context.Packages
+            .Include(p => p.Cafeteria)
+            .Where(p => p.ReservationStatus == ReservationStatus.Available);
+
+        if (!string.IsNullOrEmpty(city))
+        {
+            query = query.Where(p => p.Cafeteria.City.ToLower() == city.ToLower()); 
+        }
+
+        if (mealType.HasValue)
+        {
+            query = query.Where(p => p.MealType == mealType.Value);
+        }
+
+        // Correctly apply sorting
+        if (!string.IsNullOrEmpty(orderBy))
+        {
+            switch (orderBy.ToLower())
+            {
+                case "name":
+                    query = query.OrderBy(p => p.Name);
+                    break;
+                case "name desc":
+                    query = query.OrderByDescending(p => p.Name);
+                    break;
+                case "price":
+                    query = query.OrderBy(p => p.Price);
+                    break;
+                case "price desc": // Add OrderByDescending for descending order
+                    query = query.OrderByDescending(p => p.Price);
+                    break;
+                case "pickupdatetime":
+                    query = query.OrderBy(p => p.PickupDateTime);
+                    break;
+                case "pickupdatetime desc":
+                    query = query.OrderByDescending(p => p.PickupDateTime);
+                    break;
+                default:
+                    query = query.OrderBy(p => p.PickupDateTime); 
+                    break;
+            }
+        }
+        else
+        {
+            query = query.OrderBy(p => p.PickupDateTime); 
+        }
+
+        var packages = await query.ToListAsync();
+        var packageDtos = packages.Select(MapToDto);
+        return new Result<IEnumerable<PackageDto>> { IsSuccess = true, Value = packageDtos };
+    }
+    catch (Exception ex)
+    {
+        return new Result<IEnumerable<PackageDto>>
+        {
+            IsSuccess = false,
+            Error = new ErrorResponseDto { Message = "An error occurred while retrieving available packages.", Details = ex.Message }
+        };
+    }
+}
     }
 }

@@ -85,5 +85,14 @@ namespace Avans.FoodWaste.API.Controllers
                 return BadRequest(result.Error);
             }
         }
+        
+        [HttpGet("available")]
+        public async Task<ActionResult<IEnumerable<PackageDto>>> GetAvailable(string? city = null, MealType? mealType = null, string? orderBy = null) 
+        {
+            var result = await _packageService.GetAvailablePackagesAsync(city, mealType, orderBy);
+            return result.IsSuccess
+                ? Ok(result.Value)
+                : BadRequest(result.Error);
+        }
     }
 }

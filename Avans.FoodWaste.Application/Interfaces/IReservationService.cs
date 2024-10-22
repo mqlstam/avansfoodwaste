@@ -12,5 +12,7 @@ namespace Avans.FoodWaste.Application.Interfaces
         Task<Result<IEnumerable<ReservationDto>>> GetAllAsync(); // Get all reservations
         Task<Result<IEnumerable<ReservationDto>>> GetByStudentIdAsync(int studentId); // Get reservations by student
         Task<Result<bool>> DeleteAsync(int id);
+        
+        Task<Result<IEnumerable<ReservationDetailsDto>>> GetReservationsWithDetailsByStudentIdAsync(int studentId);
     }
 }

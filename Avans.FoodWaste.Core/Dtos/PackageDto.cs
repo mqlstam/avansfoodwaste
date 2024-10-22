@@ -28,7 +28,6 @@ namespace Avans.FoodWaste.Core.Dtos
         public string LocationIdentifier { get; set; }
         public bool HotMealsAvailable { get; set; }
         public string OperatingHours { get; set; }
-        public DateTime PickupDateTime { get; set; } // Add this property
 
     }
 }
