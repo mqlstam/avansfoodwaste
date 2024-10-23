@@ -1,11 +1,13 @@
 using Avans.FoodWaste.Application.Interfaces;
 using Avans.FoodWaste.Core.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Avans.FoodWaste.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class StudentsController : ControllerBase
     {
         private readonly IStudentService _studentService;

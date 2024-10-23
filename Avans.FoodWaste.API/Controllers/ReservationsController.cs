@@ -1,5 +1,6 @@
 using Avans.FoodWaste.Application.Interfaces;
 using Avans.FoodWaste.Core.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Avans.FoodWaste.API.Controllers
@@ -14,8 +15,8 @@ namespace Avans.FoodWaste.API.Controllers
         {
             _reservationService = reservationService;
         }
-
         [HttpPost]
+        [Authorize] // Protect the Create action
         public async Task<ActionResult<ReservationDto>> Create([FromBody] CreateReservationDto dto)
         {
             var result = await _reservationService.CreateAsync(dto);
@@ -25,6 +26,7 @@ namespace Avans.FoodWaste.API.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize] // Protect the GetById action
         public async Task<ActionResult<ReservationDto>> GetById(int id)
         {
             var result = await _reservationService.GetByIdAsync(id);
@@ -34,6 +36,7 @@ namespace Avans.FoodWaste.API.Controllers
         }
 
         [HttpGet]
+        [Authorize] //Protect the GetAll action
         public async Task<ActionResult<IEnumerable<ReservationDto>>> GetAll()
         {
             var result = await _reservationService.GetAllAsync();
@@ -42,8 +45,8 @@ namespace Avans.FoodWaste.API.Controllers
                 : BadRequest(result.Error);
         }
 
-
         [HttpGet("student/{studentId}")]
+        [Authorize] // Protect the GetByStudentId action
         public async Task<ActionResult<IEnumerable<ReservationDto>>> GetByStudentId(int studentId)
         {
             var result = await _reservationService.GetByStudentIdAsync(studentId);
@@ -52,7 +55,8 @@ namespace Avans.FoodWaste.API.Controllers
                 : BadRequest(result.Error);
         }
 
-        [HttpGet("student/{studentId}/details")] // New route
+        [HttpGet("student/{studentId}/details")]
+        [Authorize] // Protect the GetReservationsWithDetailsByStudentId action
         public async Task<ActionResult<IEnumerable<ReservationDetailsDto>>> GetReservationsWithDetailsByStudentId(int studentId)
         {
             var result = await _reservationService.GetReservationsWithDetailsByStudentIdAsync(studentId);
@@ -61,6 +65,7 @@ namespace Avans.FoodWaste.API.Controllers
                 : BadRequest(result.Error);
         }
         [HttpDelete("{id}")]
+        [Authorize(Roles = "CafetariaStaff")] // Only CafeteriaStaff can delete reservations
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _reservationService.DeleteAsync(id);

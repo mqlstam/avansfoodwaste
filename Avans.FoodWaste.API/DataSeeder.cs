@@ -1,5 +1,8 @@
 using Avans.FoodWaste.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Identity;
+using System.Threading.Tasks;
 
 namespace Avans.FoodWaste.API
 {
@@ -16,16 +19,14 @@ namespace Avans.FoodWaste.API
         {
             using var scope = _serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<FoodWasteDbContext>();
+            var serviceProvider2 = scope.ServiceProvider;
 
+            await context.Database.EnsureDeletedAsync(cancellationToken); 
+            await context.Database.MigrateAsync(cancellationToken); 
 
-            //New code
-            await context.Database.EnsureDeletedAsync(cancellationToken); //Delete database
-
-            await context.Database.MigrateAsync(cancellationToken); //Create and migrate
-
-            FoodWasteDataSeeder.SeedData(context); //Seed the database
+            await FoodWasteDataSeeder.SeedDataAsync(context, serviceProvider2); // Call SeedDataAsync
         }
 
         public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
-}
+}   

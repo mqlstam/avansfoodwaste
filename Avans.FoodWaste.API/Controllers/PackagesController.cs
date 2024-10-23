@@ -8,10 +8,10 @@ namespace Avans.FoodWaste.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Requires authentication for all actions in this controller
+    [Authorize] 
     public class PackagesController : ControllerBase
     {
-        private readonly IPackageService _packageService; // Dependency injection
+        private readonly IPackageService _packageService; 
 
         public PackagesController(IPackageService packageService)
         {
@@ -47,6 +47,7 @@ namespace Avans.FoodWaste.API.Controllers
         }
 
         [HttpPost] 
+        [Authorize(Roles = "CafetariaStaff")] // Only CafetariaStaff can create packages
         public async Task<ActionResult<PackageDto>> Create([FromBody] CreatePackageDto createPackageDto)
         {
             var result = await _packageService.CreateAsync(createPackageDto);
@@ -61,6 +62,7 @@ namespace Avans.FoodWaste.API.Controllers
         }
 
         [HttpPut("{id}")] 
+        [Authorize(Roles = "CafetariaStaff")] // Only CafetariaStaff can update packages
         public async Task<ActionResult<PackageDto>> Update(int id, [FromBody] UpdatePackageDto updatePackageDto)
         {
             var result = await _packageService.UpdateAsync(id, updatePackageDto);
@@ -75,6 +77,7 @@ namespace Avans.FoodWaste.API.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize (Roles = "CafetariaStaff")] // Only CafetariaStaff can delete packages  
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _packageService.DeleteAsync(id);
@@ -98,7 +101,7 @@ namespace Avans.FoodWaste.API.Controllers
         }
 
 
-        [HttpGet("overview/{studentId}")] // New endpoint for student package overview
+        [HttpGet("overview/{studentId}")] 
         public async Task<ActionResult<StudentPackageOverviewDto>> GetPackageOverview(int studentId)
         {
             var result = await _packageService.GetPackageOverviewAsync(studentId);

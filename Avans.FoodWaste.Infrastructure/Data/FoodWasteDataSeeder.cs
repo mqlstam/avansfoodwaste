@@ -3,12 +3,13 @@ using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.DependencyInjection;
 namespace Avans.FoodWaste.Infrastructure.Data
 {
     public class FoodWasteDataSeeder
     {
-        public static void SeedData(FoodWasteDbContext context)
+        public static async Task SeedDataAsync(FoodWasteDbContext context, IServiceProvider serviceProvider) //Added serviceProvider
         {
             if (context.Cafeterias.Any())
             {
@@ -140,6 +141,52 @@ namespace Avans.FoodWaste.Infrastructure.Data
 
             context.Reservations.AddRange(reservation1);
             context.SaveChanges();
+            
+            await SeedUsersAndRolesAsync(context, serviceProvider);
+
+        }
+        
+        
+        private static async Task SeedUsersAndRolesAsync(FoodWasteDbContext context, IServiceProvider serviceProvider)
+        {
+            using var scope = serviceProvider.CreateScope();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser<int>>>();
+            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
+
+
+            // Create roles if they don't exist
+            var roles = new[] { "Student", "Admin", "CafeteriaStaff" };
+            foreach (var role in roles)
+            {
+                var roleExists = await roleManager.RoleExistsAsync(role);
+                if (!roleExists)
+                {
+                    await roleManager.CreateAsync(new IdentityRole<int> { Name = role });
+                }
+            }
+
+            // Create users and assign roles
+            var users = new List<(string username, string password, string[] roles)>
+            {
+                ("student1", "P@$$wOrd1", new[] { "Student" }),
+                ("admin", "P@$$wOrd2", new[] { "Admin" }),
+                ("cafeteriastaff", "P@$$wOrd3", new[] { "CafeteriaStaff" })
+            };
+
+            foreach (var user in users)
+            {
+                var existingUser = await userManager.FindByNameAsync(user.username);
+                if (existingUser == null)
+                {
+                    var newUser = new IdentityUser<int> { UserName = user.username, Email = $"{user.username}@example.com" };
+                    var result = await userManager.CreateAsync(newUser, user.password);
+                    if (result.Succeeded)
+                    {
+                        await userManager.AddToRolesAsync(newUser, user.roles);
+                    }
+                }
+            }
         }
     }
 }
+    
